@@ -78,6 +78,12 @@ Date: April 2, 2026
 
 [2.8.2 Networking Equipment	9](#networking-equipment)
 
+[2.8.3 Cabling & Connectivity	9](#cabling-&-connectivity)
+
+[2.8.4 Mounting Systems	9](#mounting-systems)
+
+[2.8.5 Racks & Enclosures	9](#racks-&-enclosures)
+
 [5\. References	10](#5.-references)
 
 # **Document History and Change Log** {#document-history-and-change-log}
@@ -228,6 +234,24 @@ Examples of these may include UPS Systems, Power Conditioners, and Power Distrib
 Examples of these may include Switches, Routers, Wireless Access Points, and Network Gateways.
 
 Network equipment are part of a larger Network Infrastructure category that may also include Network Management Software.  However, there are many guidelines that already address Network Infrastructure and this document only highlights physical equipment as it is adjacent to AV devices that may be integrated in deployed systems.
+
+3. # **Cabling & Connectivity** {#cabling-&-connectivity}
+
+Physical media and connection components used to connect AV devices and carry audio, video, control, or network signals.
+
+Examples may include HDMI, USB, DisplayPort, Ethernet, and fiber-optic cables; connectors, adapters, and patch cables.
+
+4. # **Mounting Systems** {#mounting-systems}
+
+Equipment used to install, position, or support AV devices.
+
+Examples may include display wall mounts, articulating mounts, ceiling mounts, mobile carts, camera mounts, projector mounts and lifts, speaker mounts, touch panel mounts, and equipment mounting brackets.
+
+5. # **Racks & Enclosures** {#racks-&-enclosures}
+
+Structures and housings used to organize, protect, and install AV equipment.
+
+Examples may include equipment racks, rack cabinets, wall-mounted enclosures, equipment shelves, and portable equipment cases.
 
 # 
 
