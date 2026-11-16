@@ -1,0 +1,1437 @@
+openapi: 3.1.0
+info:
+  title: OpenAV Infrastructure & Accessories Capability Draft
+  version: 0.1.0
+  description: Discussion draft for Infrastructure & Accessories capabilities. This document proposes
+    capability names, properties, operations, and events; implementations expose only the capabilities
+    and operations they support. WebSocket event messages are described in the companion
+    infrastructure-accessories-events-draft.yaml. WebSocket connection, authentication, transport-ID
+    creation, and delivery lifecycle details are pending. Device-common APIs are outside this
+    category-specific draft and are expected to be defined separately.
+servers:
+- url: https://api.example.com
+  description: Draft server
+security:
+- OAuth2ClientCredentials: []
+tags:
+- name: Devices
+  description: 'Retrieve the capabilities of a device. Layer: Device common (proposed for all categories).'
+- name: OutletPower
+  description: Monitor and control power for individual outlets and subscribe to outlet power events.
+- name: PoePower
+  description: Monitor and control power for individual Power over Ethernet ports and subscribe to port power events.
+- name: Networking
+  description: Get network interface and port information.
+- name: Connectivity
+  description: Get physical connection information and subscribe to connection events.
+- name: Mounting
+  description: Get mounting information for a device.
+- name: RackEnclosure
+  description: Get rack or enclosure information and subscribe to lock-state events.
+- name: EnvironmentalMonitoring
+  description: Get environmental readings and subscribe to environmental events.
+paths:
+  /v1/devices/{deviceId}/capabilities:
+    parameters:
+    - $ref: '#/components/parameters/deviceId'
+    get:
+      operationId: deviceCapabilities
+      summary: Get device capabilities
+      description: Returns the capabilities supported by the device and the operationIds associated with
+        each capability.
+      tags:
+      - Devices
+      responses:
+        '200':
+          description: The device capabilities were returned successfully.
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/DeviceCapabilities'
+        '400':
+          $ref: '#/components/responses/BadRequestResponse'
+        '401':
+          $ref: '#/components/responses/UnauthorizedResponse'
+        '403':
+          $ref: '#/components/responses/ForbiddenResponse'
+        '404':
+          $ref: '#/components/responses/NotFoundResponse'
+        '405':
+          $ref: '#/components/responses/NotAllowedResponse'
+        '429':
+          $ref: '#/components/responses/TooManyRequestsResponse'
+  /v1/devices/{deviceId}/power/outlets:
+    parameters:
+    - $ref: '#/components/parameters/deviceId'
+    - $ref: '#/components/parameters/first'
+    - $ref: '#/components/parameters/after'
+    get:
+      operationId: listOutletPower
+      summary: List outlet power information
+      description: Returns a page of outlets accessible to the caller and the total count across all pages.
+      tags:
+      - OutletPower
+      responses:
+        '200':
+          description: The outlet page was returned successfully.
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/OutletPowerPage'
+        '400':
+          $ref: '#/components/responses/BadRequestResponse'
+        '401':
+          $ref: '#/components/responses/UnauthorizedResponse'
+        '403':
+          $ref: '#/components/responses/ForbiddenResponse'
+        '404':
+          $ref: '#/components/responses/NotFoundResponse'
+        '405':
+          $ref: '#/components/responses/NotAllowedResponse'
+        '429':
+          $ref: '#/components/responses/TooManyRequestsResponse'
+  /v1/devices/{deviceId}/power/outlets/{outletNumber}:
+    parameters:
+    - $ref: '#/components/parameters/deviceId'
+    - $ref: '#/components/parameters/outletNumber'
+    get:
+      operationId: outletPower
+      summary: Get outlet power status
+      tags:
+      - OutletPower
+      responses:
+        '200':
+          description: Outlet power status was returned successfully.
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/OutletPower'
+        '400':
+          $ref: '#/components/responses/BadRequestResponse'
+        '401':
+          $ref: '#/components/responses/UnauthorizedResponse'
+        '403':
+          $ref: '#/components/responses/ForbiddenResponse'
+        '404':
+          $ref: '#/components/responses/NotFoundResponse'
+        '405':
+          $ref: '#/components/responses/NotAllowedResponse'
+        '429':
+          $ref: '#/components/responses/TooManyRequestsResponse'
+    patch:
+      operationId: updateOutletPower
+      summary: Update outlet power state
+      tags:
+      - OutletPower
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              $ref: '#/components/schemas/PowerStateRequest'
+      responses:
+        '204':
+          description: Outlet power state updated successfully.
+        '202':
+          description: The request was accepted but may not yet be complete. Confirm the result by reading the state or receiving an event.
+        '400':
+          $ref: '#/components/responses/BadRequestResponse'
+        '401':
+          $ref: '#/components/responses/UnauthorizedResponse'
+        '403':
+          $ref: '#/components/responses/ForbiddenResponse'
+        '404':
+          $ref: '#/components/responses/NotFoundResponse'
+        '405':
+          $ref: '#/components/responses/NotAllowedResponse'
+        '409':
+          $ref: '#/components/responses/DeviceBusyResponse'
+        '429':
+          $ref: '#/components/responses/TooManyRequestsResponse'
+  /v1/devices/{deviceId}/power/outlets/{outletNumber}/cycle:
+    parameters:
+    - $ref: '#/components/parameters/deviceId'
+    - $ref: '#/components/parameters/outletNumber'
+    post:
+      operationId: cycleOutletPower
+      summary: Cycle outlet power
+      description: Interrupts power to an on outlet for the requested duration, then restores it. Rejects
+        an already-off outlet. Repeating this request may cause another interruption.
+      tags:
+      - OutletPower
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              $ref: '#/components/schemas/PowerCycleRequest'
+      responses:
+        '202':
+          description: The cycle request was accepted but may not yet be complete.
+        '400':
+          $ref: '#/components/responses/BadRequestResponse'
+        '401':
+          $ref: '#/components/responses/UnauthorizedResponse'
+        '403':
+          $ref: '#/components/responses/ForbiddenResponse'
+        '404':
+          $ref: '#/components/responses/NotFoundResponse'
+        '405':
+          $ref: '#/components/responses/NotAllowedResponse'
+        '409':
+          description: The outlet is already off, or the device cannot accept the request in its current state.
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/GenericError'
+        '429':
+          $ref: '#/components/responses/TooManyRequestsResponse'
+  /v1/devices/{deviceId}/power/outlet-events/subscription/{transportId}:
+    parameters:
+    - $ref: '#/components/parameters/deviceId'
+    - $ref: '#/components/parameters/transportId'
+    post:
+      operationId: subscribeOutletPower
+      summary: Subscribe to outlet power events
+      description: Subscribe to WebSocket power events for the device's outlets as described in the companion
+        AsyncAPI draft. How the transportId is obtained is pending.
+      tags:
+      - OutletPower
+      responses:
+        '201':
+          description: Subscription created successfully.
+        '400':
+          $ref: '#/components/responses/BadRequestResponse'
+        '401':
+          $ref: '#/components/responses/UnauthorizedResponse'
+        '403':
+          $ref: '#/components/responses/ForbiddenResponse'
+        '404':
+          $ref: '#/components/responses/NotFoundResponse'
+        '405':
+          $ref: '#/components/responses/NotAllowedResponse'
+        '429':
+          $ref: '#/components/responses/TooManyRequestsResponse'
+    delete:
+      operationId: unsubscribeOutletPower
+      summary: Unsubscribe from outlet power events
+      tags:
+      - OutletPower
+      responses:
+        '204':
+          description: Subscription deleted successfully.
+        '400':
+          $ref: '#/components/responses/BadRequestResponse'
+        '401':
+          $ref: '#/components/responses/UnauthorizedResponse'
+        '403':
+          $ref: '#/components/responses/ForbiddenResponse'
+        '404':
+          $ref: '#/components/responses/NotFoundResponse'
+        '405':
+          $ref: '#/components/responses/NotAllowedResponse'
+        '429':
+          $ref: '#/components/responses/TooManyRequestsResponse'
+  /v1/devices/{deviceId}/power/poe-ports:
+    parameters:
+    - $ref: '#/components/parameters/deviceId'
+    - $ref: '#/components/parameters/first'
+    - $ref: '#/components/parameters/after'
+    get:
+      operationId: listPoePower
+      summary: List PoE port power information
+      description: Returns a page of PoE ports accessible to the caller and the total count across all pages.
+      tags:
+      - PoePower
+      responses:
+        '200':
+          description: The PoE port page was returned successfully.
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/PoePowerPage'
+        '400':
+          $ref: '#/components/responses/BadRequestResponse'
+        '401':
+          $ref: '#/components/responses/UnauthorizedResponse'
+        '403':
+          $ref: '#/components/responses/ForbiddenResponse'
+        '404':
+          $ref: '#/components/responses/NotFoundResponse'
+        '405':
+          $ref: '#/components/responses/NotAllowedResponse'
+        '429':
+          $ref: '#/components/responses/TooManyRequestsResponse'
+  /v1/devices/{deviceId}/power/poe-ports/{portNumber}:
+    parameters:
+    - $ref: '#/components/parameters/deviceId'
+    - $ref: '#/components/parameters/portNumber'
+    get:
+      operationId: poePortPower
+      summary: Get PoE port power status
+      tags:
+      - PoePower
+      responses:
+        '200':
+          description: PoE port power status was returned successfully.
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/PoePower'
+        '400':
+          $ref: '#/components/responses/BadRequestResponse'
+        '401':
+          $ref: '#/components/responses/UnauthorizedResponse'
+        '403':
+          $ref: '#/components/responses/ForbiddenResponse'
+        '404':
+          $ref: '#/components/responses/NotFoundResponse'
+        '405':
+          $ref: '#/components/responses/NotAllowedResponse'
+        '429':
+          $ref: '#/components/responses/TooManyRequestsResponse'
+    patch:
+      operationId: updatePoePower
+      summary: Update PoE port power state
+      tags:
+      - PoePower
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              $ref: '#/components/schemas/PowerStateRequest'
+      responses:
+        '204':
+          description: PoE port power state updated successfully.
+        '202':
+          description: The request was accepted but may not yet be complete. Confirm the result by reading the state or receiving an event.
+        '400':
+          $ref: '#/components/responses/BadRequestResponse'
+        '401':
+          $ref: '#/components/responses/UnauthorizedResponse'
+        '403':
+          $ref: '#/components/responses/ForbiddenResponse'
+        '404':
+          $ref: '#/components/responses/NotFoundResponse'
+        '405':
+          $ref: '#/components/responses/NotAllowedResponse'
+        '409':
+          $ref: '#/components/responses/DeviceBusyResponse'
+        '429':
+          $ref: '#/components/responses/TooManyRequestsResponse'
+  /v1/devices/{deviceId}/power/poe-ports/{portNumber}/cycle:
+    parameters:
+    - $ref: '#/components/parameters/deviceId'
+    - $ref: '#/components/parameters/portNumber'
+    post:
+      operationId: cyclePoePower
+      summary: Cycle PoE port power
+      description: Interrupts power to an on PoE port for the requested duration, then restores it. Rejects
+        an already-off port. Repeating this request may cause another interruption.
+      tags:
+      - PoePower
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              $ref: '#/components/schemas/PowerCycleRequest'
+      responses:
+        '202':
+          description: The cycle request was accepted but may not yet be complete.
+        '400':
+          $ref: '#/components/responses/BadRequestResponse'
+        '401':
+          $ref: '#/components/responses/UnauthorizedResponse'
+        '403':
+          $ref: '#/components/responses/ForbiddenResponse'
+        '404':
+          $ref: '#/components/responses/NotFoundResponse'
+        '405':
+          $ref: '#/components/responses/NotAllowedResponse'
+        '409':
+          description: The PoE port is already off, or the device cannot accept the request in its current state.
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/GenericError'
+        '429':
+          $ref: '#/components/responses/TooManyRequestsResponse'
+  /v1/devices/{deviceId}/power/poe-events/subscription/{transportId}:
+    parameters:
+    - $ref: '#/components/parameters/deviceId'
+    - $ref: '#/components/parameters/transportId'
+    post:
+      operationId: subscribePoePower
+      summary: Subscribe to PoE port power events
+      description: Subscribe to WebSocket power events for the device's PoE ports as described in the companion
+        AsyncAPI draft. How the transportId is obtained is pending.
+      tags:
+      - PoePower
+      responses:
+        '201':
+          description: Subscription created successfully.
+        '400':
+          $ref: '#/components/responses/BadRequestResponse'
+        '401':
+          $ref: '#/components/responses/UnauthorizedResponse'
+        '403':
+          $ref: '#/components/responses/ForbiddenResponse'
+        '404':
+          $ref: '#/components/responses/NotFoundResponse'
+        '405':
+          $ref: '#/components/responses/NotAllowedResponse'
+        '429':
+          $ref: '#/components/responses/TooManyRequestsResponse'
+    delete:
+      operationId: unsubscribePoePower
+      summary: Unsubscribe from PoE port power events
+      tags:
+      - PoePower
+      responses:
+        '204':
+          description: Subscription deleted successfully.
+        '400':
+          $ref: '#/components/responses/BadRequestResponse'
+        '401':
+          $ref: '#/components/responses/UnauthorizedResponse'
+        '403':
+          $ref: '#/components/responses/ForbiddenResponse'
+        '404':
+          $ref: '#/components/responses/NotFoundResponse'
+        '405':
+          $ref: '#/components/responses/NotAllowedResponse'
+        '429':
+          $ref: '#/components/responses/TooManyRequestsResponse'
+  /v1/devices/{deviceId}/network/interfaces:
+    parameters:
+    - $ref: '#/components/parameters/deviceId'
+    - $ref: '#/components/parameters/first'
+    - $ref: '#/components/parameters/after'
+    get:
+      operationId: networkInterfaces
+      summary: List network interfaces
+      description: Returns a page of network interfaces accessible to the caller and the total count across all pages.
+      tags:
+      - Networking
+      responses:
+        '200':
+          description: Network interfaces were returned successfully.
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/NetworkInterfacePage'
+        '400':
+          $ref: '#/components/responses/BadRequestResponse'
+        '401':
+          $ref: '#/components/responses/UnauthorizedResponse'
+        '403':
+          $ref: '#/components/responses/ForbiddenResponse'
+        '404':
+          $ref: '#/components/responses/NotFoundResponse'
+        '405':
+          $ref: '#/components/responses/NotAllowedResponse'
+        '429':
+          $ref: '#/components/responses/TooManyRequestsResponse'
+  /v1/devices/{deviceId}/physical-connections:
+    parameters:
+    - $ref: '#/components/parameters/deviceId'
+    - $ref: '#/components/parameters/first'
+    - $ref: '#/components/parameters/after'
+    get:
+      operationId: physicalConnections
+      summary: List physical connections
+      description: Returns a page of known physical connections accessible to the caller and the total count
+        across all pages. Connection state is included only when actively monitored.
+      tags:
+      - Connectivity
+      responses:
+        '200':
+          description: Physical connections were returned successfully.
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/PhysicalConnectionPage'
+        '400':
+          $ref: '#/components/responses/BadRequestResponse'
+        '401':
+          $ref: '#/components/responses/UnauthorizedResponse'
+        '403':
+          $ref: '#/components/responses/ForbiddenResponse'
+        '404':
+          $ref: '#/components/responses/NotFoundResponse'
+        '405':
+          $ref: '#/components/responses/NotAllowedResponse'
+        '429':
+          $ref: '#/components/responses/TooManyRequestsResponse'
+  /v1/devices/{deviceId}/physical-connections/subscription/{transportId}:
+    parameters:
+    - $ref: '#/components/parameters/deviceId'
+    - $ref: '#/components/parameters/transportId'
+    post:
+      operationId: subscribePhysicalConnections
+      summary: Subscribe to physical connection events
+      description: Subscribe to WebSocket physical connection events described in the companion AsyncAPI draft.
+        How the transportId is obtained is pending.
+      tags:
+      - Connectivity
+      responses:
+        '201':
+          description: Subscription created successfully.
+        '400':
+          $ref: '#/components/responses/BadRequestResponse'
+        '401':
+          $ref: '#/components/responses/UnauthorizedResponse'
+        '403':
+          $ref: '#/components/responses/ForbiddenResponse'
+        '404':
+          $ref: '#/components/responses/NotFoundResponse'
+        '405':
+          $ref: '#/components/responses/NotAllowedResponse'
+        '429':
+          $ref: '#/components/responses/TooManyRequestsResponse'
+    delete:
+      operationId: unsubscribePhysicalConnections
+      summary: Unsubscribe from physical connection events
+      tags:
+      - Connectivity
+      responses:
+        '204':
+          description: Subscription deleted successfully.
+        '400':
+          $ref: '#/components/responses/BadRequestResponse'
+        '401':
+          $ref: '#/components/responses/UnauthorizedResponse'
+        '403':
+          $ref: '#/components/responses/ForbiddenResponse'
+        '404':
+          $ref: '#/components/responses/NotFoundResponse'
+        '405':
+          $ref: '#/components/responses/NotAllowedResponse'
+        '429':
+          $ref: '#/components/responses/TooManyRequestsResponse'
+  /v1/devices/{deviceId}/mounting:
+    parameters:
+    - $ref: '#/components/parameters/deviceId'
+    get:
+      operationId: deviceMounting
+      summary: Get mounting information
+      tags:
+      - Mounting
+      responses:
+        '200':
+          description: Mounting information was returned successfully.
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/Mounting'
+        '400':
+          $ref: '#/components/responses/BadRequestResponse'
+        '401':
+          $ref: '#/components/responses/UnauthorizedResponse'
+        '403':
+          $ref: '#/components/responses/ForbiddenResponse'
+        '404':
+          $ref: '#/components/responses/NotFoundResponse'
+        '405':
+          $ref: '#/components/responses/NotAllowedResponse'
+        '429':
+          $ref: '#/components/responses/TooManyRequestsResponse'
+  /v1/devices/{deviceId}/rack-enclosure:
+    parameters:
+    - $ref: '#/components/parameters/deviceId'
+    get:
+      operationId: deviceRackEnclosure
+      summary: Get rack or enclosure information
+      tags:
+      - RackEnclosure
+      responses:
+        '200':
+          description: Rack or enclosure information was returned successfully.
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/RackEnclosure'
+        '400':
+          $ref: '#/components/responses/BadRequestResponse'
+        '401':
+          $ref: '#/components/responses/UnauthorizedResponse'
+        '403':
+          $ref: '#/components/responses/ForbiddenResponse'
+        '404':
+          $ref: '#/components/responses/NotFoundResponse'
+        '405':
+          $ref: '#/components/responses/NotAllowedResponse'
+        '429':
+          $ref: '#/components/responses/TooManyRequestsResponse'
+  /v1/devices/{deviceId}/rack-enclosure/lock/subscription/{transportId}:
+    parameters:
+    - $ref: '#/components/parameters/deviceId'
+    - $ref: '#/components/parameters/transportId'
+    post:
+      operationId: subscribeRackLock
+      summary: Subscribe to rack lock events
+      description: Subscribe to WebSocket rack lock events described in the companion AsyncAPI draft when
+        lock-status monitoring is supported. How the transportId is obtained is pending.
+      tags:
+      - RackEnclosure
+      responses:
+        '201':
+          description: Subscription created successfully.
+        '400':
+          $ref: '#/components/responses/BadRequestResponse'
+        '401':
+          $ref: '#/components/responses/UnauthorizedResponse'
+        '403':
+          $ref: '#/components/responses/ForbiddenResponse'
+        '404':
+          $ref: '#/components/responses/NotFoundResponse'
+        '405':
+          $ref: '#/components/responses/NotAllowedResponse'
+        '429':
+          $ref: '#/components/responses/TooManyRequestsResponse'
+    delete:
+      operationId: unsubscribeRackLock
+      summary: Unsubscribe from rack lock events
+      tags:
+      - RackEnclosure
+      responses:
+        '204':
+          description: Subscription deleted successfully.
+        '400':
+          $ref: '#/components/responses/BadRequestResponse'
+        '401':
+          $ref: '#/components/responses/UnauthorizedResponse'
+        '403':
+          $ref: '#/components/responses/ForbiddenResponse'
+        '404':
+          $ref: '#/components/responses/NotFoundResponse'
+        '405':
+          $ref: '#/components/responses/NotAllowedResponse'
+        '429':
+          $ref: '#/components/responses/TooManyRequestsResponse'
+  /v1/devices/{deviceId}/environmental-monitoring:
+    parameters:
+    - $ref: '#/components/parameters/deviceId'
+    get:
+      operationId: environmentalMonitoring
+      summary: Get environmental readings
+      tags:
+      - EnvironmentalMonitoring
+      responses:
+        '200':
+          description: Environmental readings were returned successfully.
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/EnvironmentalMonitoring'
+        '400':
+          $ref: '#/components/responses/BadRequestResponse'
+        '401':
+          $ref: '#/components/responses/UnauthorizedResponse'
+        '403':
+          $ref: '#/components/responses/ForbiddenResponse'
+        '404':
+          $ref: '#/components/responses/NotFoundResponse'
+        '405':
+          $ref: '#/components/responses/NotAllowedResponse'
+        '429':
+          $ref: '#/components/responses/TooManyRequestsResponse'
+  /v1/devices/{deviceId}/environmental-monitoring/subscription/{transportId}:
+    parameters:
+    - $ref: '#/components/parameters/deviceId'
+    - $ref: '#/components/parameters/transportId'
+    post:
+      operationId: subscribeEnvironmentalMonitoring
+      summary: Subscribe to environmental monitoring events
+      description: Subscribe to WebSocket environmental events described in the companion AsyncAPI draft.
+        How the transportId is obtained is pending.
+      tags:
+      - EnvironmentalMonitoring
+      responses:
+        '201':
+          description: Subscription created successfully.
+        '400':
+          $ref: '#/components/responses/BadRequestResponse'
+        '401':
+          $ref: '#/components/responses/UnauthorizedResponse'
+        '403':
+          $ref: '#/components/responses/ForbiddenResponse'
+        '404':
+          $ref: '#/components/responses/NotFoundResponse'
+        '405':
+          $ref: '#/components/responses/NotAllowedResponse'
+        '429':
+          $ref: '#/components/responses/TooManyRequestsResponse'
+    delete:
+      operationId: unsubscribeEnvironmentalMonitoring
+      summary: Unsubscribe from environmental monitoring events
+      tags:
+      - EnvironmentalMonitoring
+      responses:
+        '204':
+          description: Subscription deleted successfully.
+        '400':
+          $ref: '#/components/responses/BadRequestResponse'
+        '401':
+          $ref: '#/components/responses/UnauthorizedResponse'
+        '403':
+          $ref: '#/components/responses/ForbiddenResponse'
+        '404':
+          $ref: '#/components/responses/NotFoundResponse'
+        '405':
+          $ref: '#/components/responses/NotAllowedResponse'
+        '429':
+          $ref: '#/components/responses/TooManyRequestsResponse'
+components:
+  securitySchemes:
+    OAuth2ClientCredentials:
+      type: oauth2
+      description: OAuth 2.0 client credentials flow. The token URL is an example and must be replaced for an implementation.
+      flows:
+        clientCredentials:
+          tokenUrl: https://auth.example.com/oauth2/token
+          scopes: {}
+  parameters:
+    deviceId:
+      name: deviceId
+      in: path
+      required: true
+      schema:
+        type: string
+    transportId:
+      name: transportId
+      in: path
+      required: true
+      schema:
+        type: string
+    outletNumber:
+      name: outletNumber
+      in: path
+      required: true
+      schema:
+        type: integer
+        minimum: 1
+    portNumber:
+      name: portNumber
+      in: path
+      required: true
+      schema:
+        type: integer
+        minimum: 1
+    first:
+      name: first
+      in: query
+      description: Maximum number of items to return.
+      required: false
+      schema:
+        type: integer
+        minimum: 1
+    after:
+      name: after
+      in: query
+      description: Opaque cursor returned by a previous page.
+      required: false
+      schema:
+        type: string
+  responses:
+    BadRequestResponse:
+      description: The request could not be made. Check the request body and URI parameters.
+      content:
+        application/json:
+          schema:
+            $ref: '#/components/schemas/GenericError'
+    UnauthorizedResponse:
+      description: Authorization is required.
+      content:
+        application/json:
+          schema:
+            $ref: '#/components/schemas/GenericError'
+    ForbiddenResponse:
+      description: Authorization was provided but permission to execute the request is denied.
+      content:
+        application/json:
+          schema:
+            $ref: '#/components/schemas/GenericError'
+    NotFoundResponse:
+      description: The requested device or resource was not found.
+      content:
+        application/json:
+          schema:
+            $ref: '#/components/schemas/GenericError'
+    NotAllowedResponse:
+      description: The HTTP request method is not allowed on the endpoint.
+      content:
+        application/json:
+          schema:
+            $ref: '#/components/schemas/GenericError'
+    DeviceBusyResponse:
+      description: The device cannot accept the request in its current state. Retry after the state changes.
+      content:
+        application/json:
+          schema:
+            $ref: '#/components/schemas/GenericError'
+    TooManyRequestsResponse:
+      description: The request was rejected because a rate limit or quota was exceeded.
+      headers:
+        Retry-After:
+          description: Number of seconds to wait before retrying, when provided.
+          schema:
+            type: integer
+            minimum: 0
+      content:
+        application/json:
+          schema:
+            $ref: '#/components/schemas/GenericError'
+  schemas:
+    GenericError:
+      type: object
+      title: GenericError
+      description: Error response.
+      readOnly: true
+      properties:
+        type:
+          type: string
+          description: A URI reference that identifies the problem type.
+          readOnly: true
+        title:
+          type: string
+          description: Human-readable summary of the problem type.
+          readOnly: true
+        status:
+          type: number
+          description: The HTTP status code.
+          readOnly: true
+        detail:
+          type: string
+          description: A human-readable explanation specific to this occurrence.
+          readOnly: true
+        instance:
+          type: string
+          description: A URI reference identifying the specific occurrence.
+          readOnly: true
+        traceId:
+          type: string
+          description: An identifier used to correlate system execution logs associated with the error.
+          readOnly: true
+    DeviceEventEnvelope:
+      type: object
+      description: Identifies the device that emitted the event.
+      properties:
+        deviceId:
+          type: string
+          description: ID of the device associated with the event.
+      required:
+      - deviceId
+    InfrastructureEventMetadata:
+      type: object
+      description: Event metadata proposed for deduplication and timing.
+      properties:
+        eventId:
+          type: string
+          description: Unique ID of the event. Redelivered events keep the same ID.
+        occurredAt:
+          type: string
+          format: date-time
+          description: Time the event occurred (RFC 3339, UTC).
+      required:
+      - eventId
+      - occurredAt
+    DeviceCapabilities:
+      type: array
+      description: Capabilities supported by a device. Each capability maps to the operationIds that implement
+        it.
+      items:
+        type: object
+        properties:
+          name:
+            type: string
+            readOnly: true
+          operationIds:
+            type: array
+            uniqueItems: true
+            items:
+              type: string
+            readOnly: true
+        required:
+        - name
+        - operationIds
+      examples:
+      - - name: outlet-power
+          operationIds:
+          - listOutletPower
+          - outletPower
+          - updateOutletPower
+          - cycleOutletPower
+          - subscribeOutletPower
+          - unsubscribeOutletPower
+        - name: poe-power
+          operationIds:
+          - listPoePower
+          - poePortPower
+          - updatePoePower
+          - cyclePoePower
+          - subscribePoePower
+          - unsubscribePoePower
+        - name: network-interface
+          operationIds:
+          - networkInterfaces
+        - name: physical-connection
+          operationIds:
+          - physicalConnections
+          - subscribePhysicalConnections
+          - unsubscribePhysicalConnections
+        - name: mounting
+          operationIds:
+          - deviceMounting
+        - name: rack-enclosure
+          operationIds:
+          - deviceRackEnclosure
+          - subscribeRackLock
+          - unsubscribeRackLock
+        - name: environmental-monitoring
+          operationIds:
+          - environmentalMonitoring
+          - subscribeEnvironmentalMonitoring
+          - unsubscribeEnvironmentalMonitoring
+    PowerStatus:
+      type: object
+      properties:
+        enabled:
+          type: boolean
+          readOnly: true
+          description: Whether the outlet or PoE power function is administratively enabled; this does not indicate
+            whether electrical power is currently being delivered.
+        powerState:
+          type: string
+          enum:
+          - 'on'
+          - 'off'
+          - standby
+          - unknown
+          readOnly: true
+          description: Observed state of the power output or delivery function.
+        currentAmps:
+          type: number
+          readOnly: true
+        voltageVolts:
+          type: number
+          readOnly: true
+        powerWatts:
+          type: number
+          readOnly: true
+        faultState:
+          type: string
+          enum:
+          - normal
+          - fault
+          - unknown
+          readOnly: true
+    PowerStateRequest:
+      type: object
+      properties:
+        powerState:
+          type: string
+          enum:
+          - 'on'
+          - 'off'
+      required:
+      - powerState
+    OutletPower:
+      description: Inherits shared power status properties. The resourceId in power events identifies the outlet.
+      allOf:
+      - $ref: '#/components/schemas/PowerStatus'
+      - type: object
+        properties:
+          outletName:
+            type: string
+            readOnly: true
+          outletNumber:
+            type: integer
+            minimum: 1
+            readOnly: true
+    OutletPowerPage:
+      type: object
+      description: A page of outlets accessible to the caller, with the total count across all pages.
+      properties:
+        data:
+          type: array
+          items:
+            allOf:
+            - $ref: '#/components/schemas/OutletPower'
+            - type: object
+              required:
+              - outletNumber
+        pagination:
+          $ref: '#/components/schemas/CursorPagination'
+        totalCount:
+          type: integer
+          minimum: 0
+          description: Total number of outlets accessible to the caller, not just those in this page.
+      required:
+      - data
+      - pagination
+      - totalCount
+    CursorPagination:
+      type: object
+      properties:
+        nextCursor:
+          type:
+          - string
+          - 'null'
+          description: Opaque cursor for the next page, or null when no further page exists.
+      required:
+      - nextCursor
+    PowerCycleRequest:
+      type: object
+      properties:
+        durationSeconds:
+          type: number
+          exclusiveMinimum: 0
+          description: Duration in seconds for which power is interrupted. Devices may impose additional limits.
+      required:
+      - durationSeconds
+    PoePower:
+      description: Inherits shared power status properties. The resourceId in power events identifies the PoE port.
+      allOf:
+      - $ref: '#/components/schemas/PowerStatus'
+      - type: object
+        properties:
+          allocatedPowerWatts:
+            type: number
+            readOnly: true
+          consumedPowerWatts:
+            type: number
+            readOnly: true
+          poeClass:
+            type: string
+            readOnly: true
+          portName:
+            type: string
+            readOnly: true
+          portNumber:
+            type: integer
+            minimum: 1
+            readOnly: true
+    PoePowerPage:
+      type: object
+      description: A page of PoE ports accessible to the caller, with the total count across all pages.
+      properties:
+        data:
+          type: array
+          items:
+            allOf:
+            - $ref: '#/components/schemas/PoePower'
+            - type: object
+              required:
+              - portNumber
+        pagination:
+          $ref: '#/components/schemas/CursorPagination'
+        totalCount:
+          type: integer
+          minimum: 0
+          description: Total number of PoE ports accessible to the caller, not just those in this page.
+      required:
+      - data
+      - pagination
+      - totalCount
+    PowerDeliveryEvent:
+      type: object
+      description: Emitted when power to an outlet or PoE port is lost or restored, or an overcurrent is detected.
+      properties:
+        envelope:
+          allOf:
+          - type: object
+            properties:
+              eventName:
+                type: string
+                enum:
+                - POWER_DELIVERY
+                readOnly: true
+            required:
+            - eventName
+          - $ref: '#/components/schemas/DeviceEventEnvelope'
+          - $ref: '#/components/schemas/InfrastructureEventMetadata'
+        body:
+          type: object
+          properties:
+            eventType:
+              type: string
+              enum:
+              - power-restored
+              - power-lost
+              - overcurrent
+            resourceId:
+              type: string
+              description: Identifies the outlet or PoE port associated with the event.
+            powerState:
+              type: string
+              enum:
+              - 'on'
+              - 'off'
+              - standby
+              - unknown
+            faultState:
+              type: string
+              enum:
+              - normal
+              - fault
+              - unknown
+          required:
+          - eventType
+          - resourceId
+      required:
+      - envelope
+      - body
+    NetworkInterface:
+      type: object
+      properties:
+        interfaceId:
+          type: string
+          readOnly: true
+        portName:
+          type: string
+          readOnly: true
+        portNumber:
+          type: integer
+          minimum: 1
+          readOnly: true
+        macAddress:
+          type: string
+          readOnly: true
+        linkState:
+          type: string
+          enum:
+          - up
+          - down
+          - unknown
+          readOnly: true
+        speedMbps:
+          type: integer
+          minimum: 0
+          readOnly: true
+        duplexMode:
+          type: string
+          enum:
+          - half
+          - full
+          - unknown
+          readOnly: true
+        administrativeState:
+          type: string
+          enum:
+          - enabled
+          - disabled
+          - unknown
+          readOnly: true
+    NetworkInterfacePage:
+      type: object
+      description: A page of interfaces accessible to the caller, with the total count across all pages.
+      properties:
+        data:
+          type: array
+          items:
+            allOf:
+            - $ref: '#/components/schemas/NetworkInterface'
+            - type: object
+              required:
+              - interfaceId
+        pagination:
+          $ref: '#/components/schemas/CursorPagination'
+        totalCount:
+          type: integer
+          minimum: 0
+          description: Total number of interfaces accessible to the caller, not just those in this page.
+      required:
+      - data
+      - pagination
+      - totalCount
+    PhysicalConnection:
+      type: object
+      properties:
+        connectionId:
+          type: string
+          readOnly: true
+        medium:
+          type: string
+          enum:
+          - copper
+          - fiber
+          - coaxial
+          - other
+          readOnly: true
+        cableType:
+          type: string
+          description: Cable or signal type, when known, such as HDMI, USB, DisplayPort, Ethernet, or
+            fiber.
+          readOnly: true
+        connectorTypeA:
+          type: string
+          readOnly: true
+        connectorTypeB:
+          type: string
+          readOnly: true
+        lengthMeters:
+          type: number
+          minimum: 0
+          readOnly: true
+        endpointAId:
+          type: string
+          readOnly: true
+        endpointBId:
+          type: string
+          readOnly: true
+        connectionState:
+          type: string
+          enum:
+          - connected
+          - disconnected
+          - unknown
+          readOnly: true
+          description: Include only when the connection is actively monitored.
+    PhysicalConnectionPage:
+      type: object
+      description: A page of connections accessible to the caller, with the total count across all pages.
+      properties:
+        data:
+          type: array
+          items:
+            allOf:
+            - $ref: '#/components/schemas/PhysicalConnection'
+            - type: object
+              required:
+              - connectionId
+        pagination:
+          $ref: '#/components/schemas/CursorPagination'
+        totalCount:
+          type: integer
+          minimum: 0
+          description: Total number of connections accessible to the caller, not just those in this page.
+      required:
+      - data
+      - pagination
+      - totalCount
+    PhysicalConnectionEvent:
+      type: object
+      description: Emitted when a monitored physical connection is connected or disconnected.
+      properties:
+        envelope:
+          allOf:
+          - type: object
+            properties:
+              eventName:
+                type: string
+                enum:
+                - PHYSICAL_CONNECTION
+                readOnly: true
+            required:
+            - eventName
+          - $ref: '#/components/schemas/DeviceEventEnvelope'
+          - $ref: '#/components/schemas/InfrastructureEventMetadata'
+        body:
+          type: object
+          properties:
+            eventType:
+              type: string
+              enum:
+              - connection-connected
+              - connection-disconnected
+            connectionId:
+              type: string
+            connectionState:
+              type: string
+              enum:
+              - connected
+              - disconnected
+            endpointAId:
+              type: string
+            endpointBId:
+              type: string
+          required:
+          - eventType
+          - connectionId
+          - connectionState
+      required:
+      - envelope
+      - body
+    Mounting:
+      type: object
+      properties:
+        mountType:
+          type: string
+          enum:
+          - wall
+          - ceiling
+          - cart
+          - rack
+          - other
+          readOnly: true
+        ratedLoadKg:
+          type: number
+          minimum: 0
+          readOnly: true
+        orientation:
+          type: string
+          readOnly: true
+        mountingPointId:
+          type: string
+          readOnly: true
+    RackEnclosure:
+      type: object
+      properties:
+        enclosureType:
+          type: string
+          enum:
+          - rack
+          - cabinet
+          - wall-enclosure
+          - portable-case
+          - other
+          readOnly: true
+        rackUnits:
+          type: integer
+          minimum: 0
+          readOnly: true
+        locked:
+          type: boolean
+          readOnly: true
+          description: True when the rack is locked and false when it is unlocked. Omit when the rack has no lock or lock-status reporting.
+        enclosureId:
+          type: string
+          readOnly: true
+    RackLockEvent:
+      type: object
+      description: Emitted when a monitored rack lock becomes locked or unlocked.
+      properties:
+        envelope:
+          allOf:
+          - type: object
+            properties:
+              eventName:
+                type: string
+                enum:
+                - RACK_LOCK
+                readOnly: true
+            required:
+            - eventName
+          - $ref: '#/components/schemas/DeviceEventEnvelope'
+          - $ref: '#/components/schemas/InfrastructureEventMetadata'
+        body:
+          type: object
+          properties:
+            eventType:
+              type: string
+              enum:
+              - rack-locked
+              - rack-unlocked
+            locked:
+              type: boolean
+            enclosureId:
+              type: string
+              description: Identifier of the enclosure, when available.
+          required:
+          - eventType
+          - locked
+          oneOf:
+          - properties:
+              eventType:
+                const: rack-locked
+              locked:
+                const: true
+          - properties:
+              eventType:
+                const: rack-unlocked
+              locked:
+                const: false
+      required:
+      - envelope
+      - body
+      examples:
+      - envelope:
+          eventName: RACK_LOCK
+          deviceId: rack-1
+          eventId: event-123
+          occurredAt: '2026-11-25T18:00:00Z'
+        body:
+          eventType: rack-locked
+          locked: true
+    EnvironmentalMonitoring:
+      type: object
+      properties:
+        temperatureCelsius:
+          type: number
+          readOnly: true
+        relativeHumidityPercent:
+          type: number
+          minimum: 0
+          maximum: 100
+          readOnly: true
+        doorState:
+          type: string
+          enum:
+          - open
+          - closed
+          - unknown
+          readOnly: true
+        alarmState:
+          type: string
+          enum:
+          - normal
+          - alarm
+          - unknown
+          readOnly: true
+    EnvironmentalMonitoringEvent:
+      type: object
+      description: Emitted when a monitored temperature threshold, door state, or alarm state changes.
+        Temperature thresholds are configured outside this API. A temperature-returned-to-normal event
+        indicates that the monitored temperature has returned to normal after a threshold was exceeded.
+      properties:
+        envelope:
+          allOf:
+          - type: object
+            properties:
+              eventName:
+                type: string
+                enum:
+                - ENVIRONMENTAL_MONITORING
+                readOnly: true
+            required:
+            - eventName
+          - $ref: '#/components/schemas/DeviceEventEnvelope'
+          - $ref: '#/components/schemas/InfrastructureEventMetadata'
+        body:
+          type: object
+          properties:
+            eventType:
+              type: string
+              enum:
+              - temperature-threshold-exceeded
+              - temperature-returned-to-normal
+              - door-opened
+              - door-closed
+              - alarm-raised
+              - alarm-cleared
+            resourceId:
+              type: string
+              description: Identifies the sensor or enclosure associated with the event.
+            temperatureCelsius:
+              type: number
+            thresholdCelsius:
+              type: number
+            doorState:
+              type: string
+              enum:
+              - open
+              - closed
+            alarmState:
+              type: string
+              enum:
+              - normal
+              - alarm
+          required:
+          - eventType
+          - resourceId
+      required:
+      - envelope
+      - body
