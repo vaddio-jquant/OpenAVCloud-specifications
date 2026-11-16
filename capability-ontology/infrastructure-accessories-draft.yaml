@@ -1,0 +1,746 @@
+openapi: 3.1.0
+info:
+  title: OpenAV Infrastructure & Accessories Capability Draft
+  version: 0.1.0
+  description: Discussion draft for Infrastructure & Accessories capabilities. This document proposes
+    capability names, properties, operations, and events; implementations expose only the capabilities
+    and operations they support.
+servers:
+- url: https://api.example.com
+  description: Draft server
+paths:
+  /v1/devices/{deviceId}/capabilities:
+    parameters:
+    - $ref: '#/components/parameters/deviceId'
+    get:
+      operationId: deviceCapabilities
+      summary: Get device capabilities
+      description: Returns the capabilities supported by the device and the operationIds associated with
+        each capability.
+      tags:
+      - Devices
+      responses:
+        '200':
+          description: The device capabilities were returned successfully.
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/DeviceCapabilities'
+  /v1/devices/{deviceId}/power-delivery:
+    parameters:
+    - $ref: '#/components/parameters/deviceId'
+    get:
+      operationId: devicePowerDelivery
+      summary: Get power delivery status
+      tags:
+      - PowerDelivery
+      responses:
+        '200':
+          description: Power delivery status was returned successfully.
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/PowerDelivery'
+  /v1/devices/{deviceId}/power-delivery/turn-on:
+    parameters:
+    - $ref: '#/components/parameters/deviceId'
+    post:
+      operationId: turnOn
+      summary: Turn power on
+      tags:
+      - PowerDelivery
+      responses:
+        '204':
+          description: The power-on command was accepted.
+  /v1/devices/{deviceId}/power-delivery/turn-off:
+    parameters:
+    - $ref: '#/components/parameters/deviceId'
+    post:
+      operationId: turnOff
+      summary: Turn power off
+      tags:
+      - PowerDelivery
+      responses:
+        '204':
+          description: The power-off command was accepted.
+  /v1/devices/{deviceId}/power-delivery/cycle:
+    parameters:
+    - $ref: '#/components/parameters/deviceId'
+    post:
+      operationId: cyclePower
+      summary: Cycle power
+      description: Interrupts and restores power. Implementations should document the interruption behavior
+        and any supported timing controls.
+      tags:
+      - PowerDelivery
+      responses:
+        '202':
+          description: The power-cycle command was accepted.
+  /v1/devices/{deviceId}/power-delivery/subscription/{transportId}:
+    parameters:
+    - $ref: '#/components/parameters/deviceId'
+    - $ref: '#/components/parameters/transportId'
+    post:
+      operationId: subscribePowerDelivery
+      summary: Subscribe to power delivery events
+      tags:
+      - PowerDelivery
+      description: Subscribe to power delivery state and fault events.
+      callbacks:
+        onEvent:
+          /ws:
+            post:
+              requestBody:
+                required: true
+                content:
+                  application/json:
+                    schema:
+                      $ref: '#/components/schemas/PowerDeliveryEvent'
+              responses:
+                '204':
+                  description: Event received.
+      responses:
+        '201':
+          description: Subscription created successfully.
+    delete:
+      operationId: unsubscribePowerDelivery
+      summary: Unsubscribe from power delivery events
+      tags:
+      - PowerDelivery
+      responses:
+        '204':
+          description: Subscription deleted successfully.
+  /v1/devices/{deviceId}/power/outlets/{outletNumber}:
+    parameters:
+    - $ref: '#/components/parameters/deviceId'
+    - $ref: '#/components/parameters/outletNumber'
+    get:
+      operationId: outletPower
+      summary: Get outlet power status
+      tags:
+      - OutletPower
+      responses:
+        '200':
+          description: Outlet power status was returned successfully.
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/OutletPower'
+  /v1/devices/{deviceId}/power/outlets/{outletNumber}/state:
+    parameters:
+    - $ref: '#/components/parameters/deviceId'
+    - $ref: '#/components/parameters/outletNumber'
+    put:
+      operationId: updateOutletPower
+      summary: Update outlet power state
+      tags:
+      - OutletPower
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              $ref: '#/components/schemas/PowerStateRequest'
+      responses:
+        '204':
+          description: Outlet power state updated successfully.
+  /v1/devices/{deviceId}/power/poe-ports/{portNumber}:
+    parameters:
+    - $ref: '#/components/parameters/deviceId'
+    - $ref: '#/components/parameters/portNumber'
+    get:
+      operationId: poePortPower
+      summary: Get PoE port power status
+      tags:
+      - PoePower
+      responses:
+        '200':
+          description: PoE port power status was returned successfully.
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/PoePower'
+  /v1/devices/{deviceId}/power/poe-ports/{portNumber}/state:
+    parameters:
+    - $ref: '#/components/parameters/deviceId'
+    - $ref: '#/components/parameters/portNumber'
+    put:
+      operationId: updatePoePower
+      summary: Update PoE port power state
+      tags:
+      - PoePower
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              $ref: '#/components/schemas/PowerStateRequest'
+      responses:
+        '204':
+          description: PoE port power state updated successfully.
+  /v1/devices/{deviceId}/network/interfaces:
+    parameters:
+    - $ref: '#/components/parameters/deviceId'
+    get:
+      operationId: networkInterfaces
+      summary: List network interfaces
+      tags:
+      - Networking
+      responses:
+        '200':
+          description: Network interfaces were returned successfully.
+          content:
+            application/json:
+              schema:
+                type: array
+                items:
+                  $ref: '#/components/schemas/NetworkInterface'
+  /v1/devices/{deviceId}/physical-connections:
+    parameters:
+    - $ref: '#/components/parameters/deviceId'
+    get:
+      operationId: physicalConnections
+      summary: List physical connections
+      description: Returns known physical connection or cable inventory. Connection state is included
+        only when actively monitored.
+      tags:
+      - Connectivity
+      responses:
+        '200':
+          description: Physical connections were returned successfully.
+          content:
+            application/json:
+              schema:
+                type: array
+                items:
+                  $ref: '#/components/schemas/PhysicalConnection'
+  /v1/devices/{deviceId}/physical-connections/subscription/{transportId}:
+    parameters:
+    - $ref: '#/components/parameters/deviceId'
+    - $ref: '#/components/parameters/transportId'
+    post:
+      operationId: subscribePhysicalConnections
+      summary: Subscribe to physical connection events
+      tags:
+      - Connectivity
+      callbacks:
+        onEvent:
+          /ws:
+            post:
+              requestBody:
+                required: true
+                content:
+                  application/json:
+                    schema:
+                      $ref: '#/components/schemas/PhysicalConnectionEvent'
+              responses:
+                '204':
+                  description: Event received.
+      responses:
+        '201':
+          description: Subscription created successfully.
+    delete:
+      operationId: unsubscribePhysicalConnections
+      summary: Unsubscribe from physical connection events
+      tags:
+      - Connectivity
+      responses:
+        '204':
+          description: Subscription deleted successfully.
+  /v1/devices/{deviceId}/mounting:
+    parameters:
+    - $ref: '#/components/parameters/deviceId'
+    get:
+      operationId: deviceMounting
+      summary: Get mounting information
+      tags:
+      - Mounting
+      responses:
+        '200':
+          description: Mounting information was returned successfully.
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/Mounting'
+  /v1/devices/{deviceId}/rack-enclosure:
+    parameters:
+    - $ref: '#/components/parameters/deviceId'
+    get:
+      operationId: deviceRackEnclosure
+      summary: Get rack or enclosure information
+      tags:
+      - RackEnclosure
+      responses:
+        '200':
+          description: Rack or enclosure information was returned successfully.
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/RackEnclosure'
+  /v1/devices/{deviceId}/environmental-monitoring:
+    parameters:
+    - $ref: '#/components/parameters/deviceId'
+    get:
+      operationId: environmentalMonitoring
+      summary: Get environmental readings
+      tags:
+      - EnvironmentalMonitoring
+      responses:
+        '200':
+          description: Environmental readings were returned successfully.
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/EnvironmentalMonitoring'
+  /v1/devices/{deviceId}/environmental-monitoring/subscription/{transportId}:
+    parameters:
+    - $ref: '#/components/parameters/deviceId'
+    - $ref: '#/components/parameters/transportId'
+    post:
+      operationId: subscribeEnvironmentalMonitoring
+      summary: Subscribe to environmental monitoring events
+      tags:
+      - EnvironmentalMonitoring
+      callbacks:
+        onEvent:
+          /ws:
+            post:
+              requestBody:
+              required: true
+              content:
+                application/json:
+                  schema:
+                    $ref: '#/components/schemas/EnvironmentalMonitoringEvent'
+              responses:
+              '204':
+                description: Event received.
+      responses:
+        '201':
+          description: Subscription created successfully.
+    delete:
+      operationId: unsubscribeEnvironmentalMonitoring
+      summary: Unsubscribe from environmental monitoring events
+      tags:
+      - EnvironmentalMonitoring
+      responses:
+        '204':
+          description: Subscription deleted successfully.
+components:
+  parameters:
+    deviceId:
+      name: deviceId
+      in: path
+      required: true
+      schema:
+        type: string
+    transportId:
+      name: transportId
+      in: path
+      required: true
+      schema:
+        type: string
+    outletNumber:
+      name: outletNumber
+      in: path
+      required: true
+      schema:
+        type: integer
+        minimum: 1
+    portNumber:
+      name: portNumber
+      in: path
+      required: true
+      schema:
+        type: integer
+        minimum: 1
+  schemas:
+    DeviceCapabilities:
+      type: array
+      description: Capabilities supported by a device. Each capability maps to the operationIds that implement
+        it.
+      items:
+        type: object
+        properties:
+          name:
+            type: string
+            readOnly: true
+          operationIds:
+            type: array
+            uniqueItems: true
+            items:
+              type: string
+            readOnly: true
+        required:
+        - name
+        - operationIds
+      examples:
+      - - name: power-delivery
+          operationIds:
+          - devicePowerDelivery
+          - turnOn
+          - turnOff
+          - cyclePower
+          - subscribePowerDelivery
+          - unsubscribePowerDelivery
+        - name: outlet-power
+          operationIds:
+          - outletPower
+          - updateOutletPower
+          - subscribePowerDelivery
+          - unsubscribePowerDelivery
+        - name: poe-power
+          operationIds:
+          - poePortPower
+          - updatePoePower
+          - subscribePowerDelivery
+          - unsubscribePowerDelivery
+        - name: network-interface
+          operationIds:
+          - networkInterfaces
+        - name: physical-connection
+          operationIds:
+          - physicalConnections
+          - subscribePhysicalConnections
+          - unsubscribePhysicalConnections
+        - name: mounting
+          operationIds:
+          - deviceMounting
+        - name: rack-enclosure
+          operationIds:
+          - deviceRackEnclosure
+        - name: environmental-monitoring
+          operationIds:
+          - environmentalMonitoring
+          - subscribeEnvironmentalMonitoring
+          - unsubscribeEnvironmentalMonitoring
+    PowerDelivery:
+      type: object
+      properties:
+        enabled:
+          type: boolean
+          readOnly: true
+          description: Whether the power-delivery function is administratively enabled; this does not indicate
+            whether electrical power is currently being delivered.
+        powerState:
+          type: string
+          enum:
+          - 'on'
+          - 'off'
+          - standby
+          - unknown
+          readOnly: true
+          description: Observed state of the power output or delivery function.
+        currentAmps:
+          type: number
+          readOnly: true
+        voltageVolts:
+          type: number
+          readOnly: true
+        powerWatts:
+          type: number
+          readOnly: true
+        faultState:
+          type: string
+          enum:
+          - normal
+          - fault
+          - unknown
+          readOnly: true
+    PowerStateRequest:
+      type: object
+      properties:
+        powerState:
+          type: string
+          enum:
+          - 'on'
+          - 'off'
+      required:
+      - powerState
+    OutletPower:
+      description: Inherits power delivery properties and event semantics. The resourceId in power delivery events identifies the outlet.
+      allOf:
+      - $ref: '#/components/schemas/PowerDelivery'
+      - type: object
+        properties:
+          outletName:
+            type: string
+            readOnly: true
+          outletNumber:
+            type: integer
+            minimum: 1
+            readOnly: true
+    PoePower:
+      description: Inherits power delivery properties and event semantics. The resourceId in power delivery events identifies the PoE port.
+      allOf:
+      - $ref: '#/components/schemas/PowerDelivery'
+      - type: object
+        properties:
+          allocatedPowerWatts:
+            type: number
+            readOnly: true
+          consumedPowerWatts:
+            type: number
+            readOnly: true
+          poeClass:
+            type: string
+            readOnly: true
+          portName:
+            type: string
+            readOnly: true
+          portNumber:
+            type: integer
+            minimum: 1
+            readOnly: true
+    PowerDeliveryEvent:
+      type: object
+      properties:
+        eventType:
+          type: string
+          enum:
+          - power-restored
+          - power-lost
+          - overcurrent
+        timestamp:
+          type: string
+          format: date-time
+        resourceId:
+          type: string
+          description: Identifies the device, outlet, or port associated with the event.
+        powerState:
+          type: string
+          enum:
+          - 'on'
+          - 'off'
+          - standby
+          - unknown
+        faultState:
+          type: string
+          enum:
+          - normal
+          - fault
+          - unknown
+      required:
+      - eventType
+      - timestamp
+      - resourceId
+    NetworkInterface:
+      type: object
+      properties:
+        interfaceId:
+          type: string
+          readOnly: true
+        portName:
+          type: string
+          readOnly: true
+        portNumber:
+          type: integer
+          minimum: 1
+          readOnly: true
+        macAddress:
+          type: string
+          readOnly: true
+        linkState:
+          type: string
+          enum:
+          - up
+          - down
+          - unknown
+          readOnly: true
+        speedMbps:
+          type: integer
+          minimum: 0
+          readOnly: true
+        duplexMode:
+          type: string
+          enum:
+          - half
+          - full
+          - unknown
+          readOnly: true
+        vlanId:
+          type: integer
+          minimum: 1
+          maximum: 4094
+          readOnly: true
+        administrativeState:
+          type: string
+          enum:
+          - enabled
+          - disabled
+          - unknown
+          readOnly: true
+    PhysicalConnection:
+      type: object
+      properties:
+        connectionId:
+          type: string
+          readOnly: true
+        medium:
+          type: string
+          enum:
+          - copper
+          - fiber
+          - coaxial
+          - other
+          readOnly: true
+        cableType:
+          type: string
+          description: Cable or signal type, when known, such as HDMI, USB, DisplayPort, Ethernet, or
+            fiber.
+          readOnly: true
+        connectorTypeA:
+          type: string
+          readOnly: true
+        connectorTypeB:
+          type: string
+          readOnly: true
+        lengthMeters:
+          type: number
+          minimum: 0
+          readOnly: true
+        endpointAId:
+          type: string
+          readOnly: true
+        endpointBId:
+          type: string
+          readOnly: true
+        connectionState:
+          type: string
+          enum:
+          - connected
+          - disconnected
+          - unknown
+          readOnly: true
+          description: Include only when the connection is actively monitored.
+    PhysicalConnectionEvent:
+      type: object
+      properties:
+        eventType:
+          type: string
+          enum:
+          - connection-connected
+          - connection-disconnected
+        timestamp:
+          type: string
+          format: date-time
+        connectionId:
+          type: string
+        connectionState:
+          type: string
+          enum:
+          - connected
+          - disconnected
+        endpointAId:
+          type: string
+        endpointBId:
+          type: string
+      required:
+      - eventType
+      - timestamp
+      - connectionId
+      - connectionState
+    Mounting:
+      type: object
+      properties:
+        mountType:
+          type: string
+          enum:
+          - wall
+          - ceiling
+          - cart
+          - rack
+          - other
+          readOnly: true
+        ratedLoadKg:
+          type: number
+          minimum: 0
+          readOnly: true
+        orientation:
+          type: string
+          readOnly: true
+        mountingPointId:
+          type: string
+          readOnly: true
+    RackEnclosure:
+      type: object
+      properties:
+        enclosureType:
+          type: string
+          enum:
+          - rack
+          - cabinet
+          - wall-enclosure
+          - portable-case
+          - other
+          readOnly: true
+        rackUnits:
+          type: integer
+          minimum: 0
+          readOnly: true
+        locked:
+          type: boolean
+          readOnly: true
+          description: True when the rack is locked and false when it is unlocked. Omit when the rack has no lock or lock-status reporting.
+        enclosureId:
+          type: string
+          readOnly: true
+    EnvironmentalMonitoring:
+      type: object
+      properties:
+        temperatureCelsius:
+          type: number
+          readOnly: true
+        relativeHumidityPercent:
+          type: number
+          minimum: 0
+          maximum: 100
+          readOnly: true
+        doorState:
+          type: string
+          enum:
+          - open
+          - closed
+          - unknown
+          readOnly: true
+        alarmState:
+          type: string
+          enum:
+          - normal
+          - alarm
+          - unknown
+          readOnly: true
+    EnvironmentalMonitoringEvent:
+      type: object
+      properties:
+        eventType:
+          type: string
+          enum:
+          - temperature-threshold-exceeded
+          - door-opened
+          - door-closed
+          - alarm-raised
+          - alarm-cleared
+        timestamp:
+          type: string
+          format: date-time
+        resourceId:
+          type: string
+          description: Identifies the sensor or enclosure associated with the event.
+        temperatureCelsius:
+          type: number
+        thresholdCelsius:
+          type: number
+        doorState:
+          type: string
+          enum:
+          - open
+          - closed
+        alarmState:
+          type: string
+          enum:
+          - normal
+          - alarm
+      required:
+      - eventType
+      - timestamp
+      - resourceId
